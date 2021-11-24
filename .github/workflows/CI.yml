@@ -23,12 +23,23 @@ jobs:
           - ubuntu-latest
         arch:
           - x64
+        python-version:
+          - '3.8'
+
     steps:
       - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: install numpy
+        run: pip install numpy
+
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
+
       - uses: actions/cache@v1
         env:
           cache-name: cache-artifacts
