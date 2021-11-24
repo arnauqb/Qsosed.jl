@@ -1,6 +1,5 @@
-using qsosed
+using Qsosed
 using Test
 
-@testset "qsosed.jl" begin
-    # Write your tests here.
-end
+include("black_hole_tests.jl")
+include("disk_tests.jl")
