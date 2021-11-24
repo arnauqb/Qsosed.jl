@@ -1,0 +1,16 @@
+M: 1e8
+mdot: 0.5
+spin: 0.0
+mu_nucleon: 0.61
+reprocessing: true
+hard_xray_fraction: 0.02
+corona_electron_energy: 100.0
+warm_electron_energy: 0.2
+warm_photon_index: 2.5
+reflection_albedo: 0.3
+min_energy: 1e-4 # kev
+max_energy: 200
+uv_min_energy: 0.00387
+uv_max_energy: 0.06
+xray_min_energy: 0.06
+xray_max_energy: 1.0
