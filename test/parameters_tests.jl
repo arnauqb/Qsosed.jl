@@ -3,7 +3,8 @@ using Test, Qsosed
 
 
 @testset "test parse parameters" begin
-    parameters = Parameters("./configs/config_example.yaml")
+    config_path = String(@__DIR__) * "/../configs/config_example.yaml"
+    parameters = Parameters(config_path)
     @test parameters.M == 1e8
     @test parameters.mdot == 0.5
     @test parameters.mdot == 0.5
