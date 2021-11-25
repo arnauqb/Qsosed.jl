@@ -12,10 +12,11 @@ export BlackBody,
     gravity_radius,
     disk_flux,
     disk_flux_norel,
-    disk_temperature,
-    disk_temperature_norel,
+    compute_disk_temperature,
+    compute_disk_temperature_norel,
     uv_fraction,
-    uv_fractions
+    uv_fractions,
+    compute_disk_luminosity
 
 struct BlackBody
     T::Float64
@@ -152,12 +153,12 @@ end
 """
 Computes the temperature of the disk at a radius r (in units of Rg).
 """
-function disk_temperature(bh::BlackHole, r)
+function compute_disk_temperature(bh::BlackHole, r)
     flux = disk_flux(bh, r)
     return (flux / SIGMA_SB)^(1 / 4)
 end
 
-function disk_temperature_norel(bh::BlackHole, r)
+function compute_disk_temperature_norel(bh::BlackHole, r)
     flux = disk_flux_norel(bh, r)
     return (flux / SIGMA_SB)^(1 / 4)
 end
@@ -166,7 +167,7 @@ function uv_fraction(bh::BlackHole, r)
     if r <= bh.isco
         return 0.0
     end
-    temperature = disk_temperature(bh, r)
+    temperature = compute_disk_temperature(bh, r)
     bb = BlackBody(temperature)
     return spectral_band_fraction(bb, UV_LOW_KEV, UV_HIGH_KEV)
 end
@@ -179,7 +180,7 @@ end
 Disk spectrum
 """
 function disk_spectral_band_radiance(bh::BlackHole, low, high)
-    f(r) = spectral_band_radiance(BlackBody(disk_temperature(bh, r)), low, high) * r
+    f(r) = spectral_band_radiance(BlackBody(compute_disk_temperature(bh, r)), low, high) * r
     integral, err = quadgk(f, bh.isco, 1600, rtol = 1e-8, atol = 0)
     return integral * 4π^2 * bh.Rg^2
 end
@@ -195,6 +196,17 @@ end
 Disk height
 """
 function disk_height(bh::BlackHole, r; mu_e = 1.17)
-    return SIGMA_E * mu_e * SIGMA_SB * disk_temperature(bh, r)^4 * (r * bh.Rg)^3 /
+    return SIGMA_E * mu_e * SIGMA_SB * compute_disk_temperature(bh, r)^4 * (r * bh.Rg)^3 /
            (G * bh.M * C) / bh.Rg
 end
+
+"""
+    compute_disk_luminosity(bh, r_min, r_max)
+computes the luminosity of the disk between r_min and r_max
+"""
+function compute_disk_luminosity(bh, r_min, r_max)
+    constant = SIGMA_SB * 4 * π * bh.Rg^2
+    integ, _ = quadgk(r -> r * compute_disk_temperature(bh, r)^4, r_min, r_max, atol=0, rtol=1e-2)
+    return integ * constant
+end
+
