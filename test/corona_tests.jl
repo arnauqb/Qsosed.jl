@@ -48,3 +48,4 @@ using Qsosed, Test
     @test corona_photon_index ≈ 1.6483970267857697  rtol = 1e-1
 
 end
+

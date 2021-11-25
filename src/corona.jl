@@ -4,7 +4,8 @@ export Corona,
     compute_corona_dissipated_luminosity,
     compute_corona_photon_index,
     compute_corona_radius,
-    compute_corona_luminosity
+    compute_corona_luminosity,
+    compute_reprocessed_flux
 
 using QuadGK, Roots
 
@@ -103,4 +104,21 @@ Total luminosity of the corona.
 """
 function compute_corona_luminosity(corona)
     return compute_corona_seed_luminosity(corona) + compute_corona_dissipated_luminosity(corona)
+end
+
+"""
+    compute_reprocessed_flux(corona, radius)
+Computes the reprocessed flux from the corona at radius `radius`.
+"""
+function compute_reprocessed_flux(corona, radius; albedo=0.3)
+    Lhot = compute_corona_luminosity(corona)
+    height = corona.radius * corona.bh.Rg
+    radius = radius * corona.bh.Rg
+    isco = corona.bh.isco * corona.bh.Rg
+    Mdot = compute_mass_accretion_rate(corona.bh) 
+    aux1 = (3 * G * corona.bh.M * Mdot) / (8 * π * radius^3)
+    aux2 = 2 * Lhot / (Mdot * C^2)
+    aux3 = height / isco * (1 - albedo)
+    aux4 = (1 + (height / radius)^2)^(-1.5)
+    return aux1 * aux2 * aux3 * aux4
 end
