@@ -1,5 +1,5 @@
 using Pkg
-Pkg.activate("/home/arnau/code/qsosed")
+Pkg.activate("/home/arnau/code/qsosed.jl")
 using Qsosed
 using PyPlot
 LogNorm = matplotlib.colors.LogNorm

@@ -1,5 +1,5 @@
 using Qsosed
-using Test
+using Test, QuadGK
 
 @testset "Disk radiation" begin
     @testset "Blackbody radiation" begin
@@ -51,16 +51,21 @@ using Test
         end
 
         @testset "Integrate spectral radial radiance" begin
-
             bh = BlackHole(1e8 * M_SUN, 0.5, 0)
             energy_range = 10 .^ range(-3, -1, length = 50)
             radius = 50
-            spectral_flux = compute_disk_spectral_flux_at_radius(bh, radius, energy_range)
-            total_flux = sum(spectral_flux .* energy_range[2:end])
+            flux = compute_disk_flux_at_radius(bh, radius)
             temp = compute_disk_temperature(bh, radius)
             exp = SIGMA_SB * temp^4
-            @test total_flux ≈ exp rtol = 1e-2
-
+            @test flux ≈ exp rtol = 1e-3
+            integ_flux, _ = quadgk(
+                e -> compute_disk_spectral_flux_at_radius(bh, radius, e),
+                1e-5,
+                1e2,
+                atol = 0,
+                rtol = 1e-4,
+            )
+            @test integ_flux ≈ exp rtol = 1e-2
         end
 
         @testset "UV fraction" begin
