@@ -7,10 +7,27 @@ LogNorm = matplotlib.colors.LogNorm
 
 model = QsosedModel("./configs/config_example.yaml");
 
-energy_range = 10 .^ range(-3, 2, length=50);
+energy_range = 10 .^ range(-5, 2, length = 500);
 
-corona_flux = compute_corona_photon_flux(model, energy_range);
-disk_flux = compute_disk_photon_flux(model.bh, r_min = model.warm.radius, r_max= gravity_radius(model.bh), energy_range=energy_range);
+cl = compute_corona_spectral_luminosity(model.corona, model.warm, energy_range);
+dl = Qsosed.compute_disk_spectral_luminosity(
+    model.bh,
+    energy_range,
+    r_min = model.warm.radius,
+    r_max = gravity_radius(model.bh),
+);
+fig, ax = plt.subplots()
+dl = dl .* energy_range;
+cl = cl .* energy_range;
+ax.loglog(energy_range, dl)
+ax.loglog(energy_range, cl)
+ax.set_ylim(maximum(dl) / 1e2, maximum(dl) * 1.25)
+ax.set_xlim(5e-5, 5e2)
+
+cl = compute_corona_spectral_luminosity(model.corona, model.warm, energy_range);
+fig, ax = plt.subplots()
+cl = cl .* energy_range;
+ax.loglog(energy_range, cl)
 
 fig, ax = plt.subplots()
 ax.loglog(energy_range, disk_flux, label = "disk")

@@ -6,7 +6,8 @@ export Corona,
     compute_corona_radius,
     compute_corona_luminosity,
     compute_reprocessed_flux,
-    compute_corona_photon_flux
+    compute_corona_photon_flux,
+    compute_corona_spectral_luminosity
 
 using QuadGK, Roots
 
@@ -142,23 +143,19 @@ function compute_reprocessed_flux(corona, radius; albedo = 0.3)
     return aux1 * aux2 * aux3 * aux4
 end
 
-
-function compute_corona_photon_flux(corona::Corona, warm, energy_range, distance=1e10)
+function compute_corona_spectral_luminosity(corona::Corona, warm, energy_range)
     gamma = compute_corona_photon_index(corona)
     kt_e = corona.electron_energy
     kt_c = compute_disk_temperature(corona.bh, corona.radius) * K_B
     kt_c_kev = kt_c * ERG_TO_KEV
     ywarm = compute_ywarm(warm)
     params = [gamma, kt_e, kt_c_kev * exp(ywarm), 0, 0]
-    compton_flux = compute_compton_photon_flux(energy_range, params)
-    println(compton_flux)
-    total_compton_flux = sum(energy_range[2:end] .* diff(energy_range) .* compton_flux[2:end]) / ERG_TO_KEV
-    println(total_compton_flux)
-    target_flux = compute_corona_luminosity(corona) / (4 * π * distance^2)
-    ret = (target_flux / total_compton_flux) * compton_flux
-    return ret
+    photons_per_bin = compute_compton_photons_per_bin(energy_range, params)
+    mid_energies = (energy_range[1:end-1] + energy_range[2:end]) / 2
+    lumin_per_bin = vcat([0], photons_per_bin[2:end] .* mid_energies)
+    total_lumin = sum(lumin_per_bin) 
+    target_luminosity = compute_corona_luminosity(corona) 
+    ret = lumin_per_bin * (target_luminosity / total_lumin)
+    ret = ret[2:end] ./ diff(energy_range)
+    return vcat([0], ret)
 end
-
-compute_corona_photon_flux(model::Model, energy_range, distance=1e10) =
-    compute_corona_photon_flux(model.corona, model.warm, energy_range, distance)
-

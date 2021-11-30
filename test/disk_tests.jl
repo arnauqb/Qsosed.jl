@@ -66,6 +66,30 @@ using Test, QuadGK
                 rtol = 1e-4,
             )
             @test integ_flux ≈ exp rtol = 1e-2
+
+            @testset "Recover luminosity" begin
+                function kernel(bh, radius)
+                    integ_flux, _ = quadgk(
+                        e -> compute_disk_spectral_flux_at_radius(bh, radius, e),
+                        1e-5,
+                        1e2,
+                        atol = 0,
+                        rtol = 1e-4,
+                    )
+                    return integ_flux
+                end
+                lumin_integ, _ = quadgk(
+                    r -> 2 * 2 * π * r * kernel(bh, r),
+                    6.0,
+                    1500.0,
+                    atol = 0,
+                    rtol = 1e-4,
+                )
+                lumin_integ *= bh.Rg^2
+                lbol = compute_bolometric_luminosity(bh)
+                @test lumin_integ ≈ lbol rtol = 1e-1
+            end
+
         end
 
         @testset "UV fraction" begin

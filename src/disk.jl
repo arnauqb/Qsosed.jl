@@ -17,6 +17,7 @@ export BlackBody,
     uv_fraction,
     uv_fractions,
     compute_disk_luminosity,
+    compute_disk_spectral_luminosity,
     compute_disk_spectral_flux,
     compute_disk_spectral_flux_at_radius,
     compute_disk_flux_at_radius
@@ -237,9 +238,24 @@ end
     compute_disk_flux_at_radius(bh, radius, energy_range)
 Returns an array with the photon flux at each bin. (# photons / cm^2)
 """
-function compute_disk_flux_at_radius(bh, radius, low=1e-5, high=1e2)
+function compute_disk_flux_at_radius(bh, radius, low = 1e-5, high = 1e2)
     ret = Float64[]
     bb = BlackBody(compute_disk_temperature(bh, radius))
     radiance = spectral_band_radiance(bb, low, high)
-    return radiance * π 
+    return radiance * π
+end
+
+function compute_disk_spectral_luminosity(bh, energy_range; r_min=6, r_max=1600)
+    ret = Float64[]
+    for energy in energy_range
+        integ, _ = quadgk(
+            r -> r * compute_disk_spectral_flux_at_radius(bh, r, energy),
+            r_min,
+            r_max,
+            rtol = 1e-8,
+            atol = 0,
+        )
+        push!(ret, integ)
+    end
+    return ret * 2 * 2π * bh.Rg^2
 end
