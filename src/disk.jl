@@ -16,7 +16,9 @@ export BlackBody,
     compute_disk_temperature_norel,
     uv_fraction,
     uv_fractions,
-    compute_disk_luminosity
+    compute_disk_luminosity,
+    compute_disk_spectral_flux,
+    compute_disk_spectral_flux_at_radius
 
 struct BlackBody
     T::Float64
@@ -49,7 +51,9 @@ function spectral_radiance(bb::BlackBody, energy)
 end
 
 """
-Computes the radiance on a frequency band from low to high.
+    spectral_band_radiance_frequency(bb::BlackBody, low, high)
+Computes the radiance on a frequency band from low to high. low and high
+have to be in Hz, return units are erg / sr / m^2
 """
 function spectral_band_radiance_frequency(bb::BlackBody, low, high)
     low = max(low, nu_peak(bb) / 1e4)
@@ -206,7 +210,42 @@ computes the luminosity of the disk between r_min and r_max
 """
 function compute_disk_luminosity(bh, r_min, r_max)
     constant = SIGMA_SB * 4 * π * bh.Rg^2
-    integ, _ = quadgk(r -> r * compute_disk_temperature(bh, r)^4, r_min, r_max, atol=0, rtol=1e-2)
+    integ, _ = quadgk(
+        r -> r * compute_disk_temperature(bh, r)^4,
+        r_min,
+        r_max,
+        atol = 0,
+        rtol = 1e-2,
+    )
     return integ * constant
 end
 
+"""
+    compute_disk_photon_flux_at_radius(bh, radius, energy_range)
+Returns an array with the photon flux at each bin. (# photons / cm^2)
+"""
+function compute_disk_spectral_flux_at_radius(bh, radius, energy_range)
+    ret = Float64[]
+    bb = BlackBody(compute_disk_temperature(bh, radius))
+    for i = 2:length(energy_range)
+        e_low = energy_range[i - 1]
+        e_high = energy_range[i]
+        radiance = spectral_band_radiance(bb, e_low, e_high) # this is erg / sr / m^2
+        radiance = radiance * ERG_TO_KEV # keV / sr / m^2
+        push!(ret, radiance)
+    end
+    return ret 
+end
+
+function compute_disk_flux(bh; r_min, r_max, energy_range)
+    ph_flux, _ = quadgk(
+        r -> compute_disk_flux_at_radius(bh, r, energy_range),
+        r_min,
+        r_max,
+        atol = 0,
+        rtol = 1e-2,
+    )
+    ph_flux = vcat([0], ph_flux)
+    ph_flux
+    return max.(0, ph_flux)
+end

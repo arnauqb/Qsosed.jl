@@ -49,6 +49,20 @@ using Test
             @test disk_flux(bh, 10) / 1.17 ≈ 889138044477300.2 rtol = 1e-6
             @test disk_flux(bh, 100) / 1.17 ≈ 1662600341587.0435 rtol = 1e-6
         end
+
+        @testset "Integrate spectral radial radiance" begin
+
+            bh = BlackHole(1e8 * M_SUN, 0.5, 0)
+            energy_range = 10 .^ range(-3, -1, length = 50)
+            radius = 50
+            spectral_flux = compute_disk_spectral_flux_at_radius(bh, radius, energy_range)
+            total_flux = sum(spectral_flux .* energy_range[2:end])
+            temp = compute_disk_temperature(bh, radius)
+            exp = SIGMA_SB * temp^4
+            @test total_flux ≈ exp rtol = 1e-2
+
+        end
+
         @testset "UV fraction" begin
             bh = BlackHole(1e8 * M_SUN, 0.5, 0)
             @test uv_fraction(bh, 1.0) ≈ 0
