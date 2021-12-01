@@ -61,6 +61,5 @@ end
 
 function Parameters(file_path::String)
     config = YAML.load_file(file_path, dicttype=Dict{Symbol, Any})
-    println(config)
     return Parameters(;config...)
 end

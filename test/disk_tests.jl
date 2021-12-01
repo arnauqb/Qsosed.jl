@@ -47,7 +47,7 @@ using Test, QuadGK
 
         @testset "Integrate spectral radial radiance" begin
             bh = BlackHole(1e8 * M_SUN, 0.5, 0)
-            energy_range = 10 .^ range(-3, -1, length = 50)
+            energy_range = 10 .^ range(-3, -1, length = 500)
             radius = 50
             flux = compute_disk_flux_at_radius(bh, radius)
             temp = compute_disk_temperature(bh, radius)
@@ -83,6 +83,12 @@ using Test, QuadGK
                 lumin_integ *= bh.Rg^2
                 lbol = compute_bolometric_luminosity(bh)
                 @test lumin_integ ≈ lbol rtol = 1e-1
+            end
+
+            @testset "Disk sed" begin
+                disk_sed = compute_disk_spectral_luminosity(bh, energy_range)
+                integ_lumin = sum(disk_sed[2:end] .* diff(energy_range))
+                @test integ_lumin ≈ compute_bolometric_luminosity(bh) rtol = 1e-1
             end
 
         end

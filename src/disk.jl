@@ -9,9 +9,7 @@ export BlackBody,
     disk_nt_rel_factors,
     gravity_radius,
     disk_flux,
-    disk_flux_norel,
     compute_disk_temperature,
-    compute_disk_temperature_norel,
     compute_disk_luminosity,
     compute_disk_spectral_luminosity,
     compute_disk_spectral_flux,
@@ -128,39 +126,12 @@ function disk_flux(bh::BlackHole, r)
     return 3 * G * bh.M * Mdot / (8 * π * (r * bh.Rg)^3) * NT_factors
 end
 
-function disk_flux_norel(bh::BlackHole, r)
-    Mdot = compute_mass_accretion_rate(bh)
-    return 3 * G * bh.M * Mdot / (8 * π * (r * bh.Rg)^3)
-end
-
 """
 Computes the temperature of the disk at a radius r (in units of Rg).
 """
 function compute_disk_temperature(bh::BlackHole, r)
     flux = disk_flux(bh, r)
     return (flux / SIGMA_SB)^(1 / 4)
-end
-
-function compute_disk_temperature_norel(bh::BlackHole, r)
-    flux = disk_flux_norel(bh, r)
-    return (flux / SIGMA_SB)^(1 / 4)
-end
-
-"""
-Disk spectrum
-"""
-function disk_spectral_band_radiance(bh::BlackHole, low, high)
-    f(r) = spectral_band_radiance(BlackBody(compute_disk_temperature(bh, r)), low, high) * r
-    integral, err = quadgk(f, bh.isco, 1600, rtol = 1e-8, atol = 0)
-    return integral * 4π^2 * bh.Rg^2
-end
-
-"""
-Disk height
-"""
-function disk_height(bh::BlackHole, r; mu_e = 1.17)
-    return SIGMA_E * mu_e * SIGMA_SB * compute_disk_temperature(bh, r)^4 * (r * bh.Rg)^3 /
-           (G * bh.M * C) / bh.Rg
 end
 
 """
