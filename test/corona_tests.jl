@@ -47,5 +47,12 @@ using Qsosed, Test
     corona_photon_index = compute_corona_photon_index(corona)
     @test corona_photon_index ≈ 1.6483970267857697  rtol = 1e-1
 
+    warm = Warm(corona, electron_energy = 0.2, photon_index = 2.5)
+    energy_range = 10 .^ range(-5, 3, length = 500);
+    corona_sed = compute_corona_spectral_luminosity(corona, warm, energy_range)
+    integ_lumin = sum(corona_sed[2:end] .* diff(energy_range))
+    target_lumin = compute_corona_luminosity(corona)
+    @test integ_lumin ≈ target_lumin rtol = 1e-5
+
 end
 
