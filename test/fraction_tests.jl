@@ -35,3 +35,12 @@ end
         end
     end
 end
+
+@testset "X-Ray fraction" begin
+    bh = BlackHole(1e8 * M_SUN, 0.5, 0.0)
+    corona =
+        Corona(bh, hard_xray_fraction = 0.02, electron_energy = 100, reprocessing = true)
+    warm = Warm(corona, electron_energy = 0.2, photon_index = 2.5)
+    xf = total_xray_fraction(corona, warm)
+    @test 0.1 < xf < 0.2
+end
