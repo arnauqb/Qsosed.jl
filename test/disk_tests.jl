@@ -23,11 +23,6 @@ using Test, QuadGK
             bb = BlackBody(1e4)
             @test spectral_band_radiance(bb, 1e-5, 1e2) ≈ SIGMA_SB * bb.T^4 / π rtol = 1e-6
         end
-        @testset "Energy band fraction" begin
-            bb = BlackBody(1e4)
-            @test spectral_band_fraction_frequency(bb, 1e12, 1e18) ≈ 1 rtol = 1e-8
-            @test spectral_band_fraction(bb, 1e-5, 1e2) ≈ 1 rtol = 1e-6
-        end
     end
     @testset "Disk radiation" begin
         @testset "Test relativistic AD correction" begin
@@ -90,16 +85,6 @@ using Test, QuadGK
                 @test lumin_integ ≈ lbol rtol = 1e-1
             end
 
-        end
-
-        @testset "UV fraction" begin
-            bh = BlackHole(1e8 * M_SUN, 0.5, 0)
-            @test disk_uv_fraction(bh, 1.0) ≈ 0
-            uvf1 = disk_uv_fraction(bh, 6.01)
-            uvf2 = disk_uv_fraction(bh, 30)
-            uvf3 = disk_uv_fraction(bh, 200)
-            @test uvf1 < uvf2
-            @test uvf3 < uvf2
         end
     end
 end
