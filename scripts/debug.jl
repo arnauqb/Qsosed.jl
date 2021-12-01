@@ -6,6 +6,7 @@ LogNorm = matplotlib.colors.LogNorm
 
 
 model = QsosedModel("./configs/config_example.yaml");
+
 energy_range = 10 .^ range(-5, 3, length = 500);
 cl = compute_corona_spectral_luminosity(model.corona, model.warm, energy_range);
 dl = Qsosed.compute_disk_spectral_luminosity(
@@ -26,3 +27,4 @@ ax.set_ylim(maximum(dl) / 1e2, maximum(dl) * 1.25)
 ax.set_xlim(5e-5, 5e2)
 ax.legend()
 
+total_xray_fraction(model)

@@ -11,5 +11,6 @@ include("warm.jl")
 include("xspec_routines.jl")
 include("compton.jl")
 include("model.jl")
+include("fractions.jl")
 
 end

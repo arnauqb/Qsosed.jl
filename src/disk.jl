@@ -5,8 +5,6 @@ export BlackBody,
     spectral_radiance_frequency,
     spectral_band_radiance,
     spectral_band_radiance_frequency,
-    spectral_band_fraction,
-    spectral_band_fraction_frequency,
     radiance,
     disk_nt_rel_factors,
     gravity_radius,
@@ -14,8 +12,6 @@ export BlackBody,
     disk_flux_norel,
     compute_disk_temperature,
     compute_disk_temperature_norel,
-    uv_fraction,
-    uv_fractions,
     compute_disk_luminosity,
     compute_disk_spectral_luminosity,
     compute_disk_spectral_flux,
@@ -77,25 +73,6 @@ function spectral_band_radiance(bb::BlackBody, low, high)
 end
 
 radiance(bb::BlackBody) = SIGMA_SB * bb.T^4 / π
-
-"""
-Computes the amount of black body radiance that is emitted in
-a particular frequency band.
-"""
-function spectral_band_fraction_frequency(bb::BlackBody, low, high)
-    total_radiance = radiance(bb)
-    band_radiance = spectral_band_radiance_frequency(bb, low, high)
-    return band_radiance / total_radiance
-end
-"""
-Computes the amount of black body radiance that is emitted in
-a particular energy band.
-"""
-function spectral_band_fraction(bb::BlackBody, low, high)
-    total_radiance = radiance(bb)
-    band_radiance = spectral_band_radiance(bb, low, high)
-    return band_radiance / total_radiance
-end
 
 """
 Novikov-Thorne relativistic factors for the AD spectrum.
@@ -169,19 +146,6 @@ function compute_disk_temperature_norel(bh::BlackHole, r)
     return (flux / SIGMA_SB)^(1 / 4)
 end
 
-function uv_fraction(bh::BlackHole, r)
-    if r <= bh.isco
-        return 0.0
-    end
-    temperature = compute_disk_temperature(bh, r)
-    bb = BlackBody(temperature)
-    return spectral_band_fraction(bb, UV_LOW_KEV, UV_HIGH_KEV)
-end
-
-function uv_fractions(bh::BlackHole, radius_range)
-    return uv_fraction.(Ref(bh), radius_range)
-end
-
 """
 Disk spectrum
 """
@@ -190,13 +154,6 @@ function disk_spectral_band_radiance(bh::BlackHole, low, high)
     integral, err = quadgk(f, bh.isco, 1600, rtol = 1e-8, atol = 0)
     return integral * 4π^2 * bh.Rg^2
 end
-
-function xray_fraction(bh::BlackHole; low = UV_HIGH_KEV, high = 1e7)
-    total_lumin = compute_bolometric_luminosity(bh)
-    xray_lumin = disk_spectral_band_radiance(bh, low, high)
-    xray_lumin / total_lumin
-end
-
 
 """
 Disk height
