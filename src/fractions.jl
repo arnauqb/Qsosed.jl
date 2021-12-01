@@ -1,4 +1,4 @@
-export total_xray_fraction, radial_uv_fraction
+export total_xray_fraction, radial_uv_fraction, disk_uv_fraction
 
 """
     spectral_band_fraction_frequency(bb, low, high)

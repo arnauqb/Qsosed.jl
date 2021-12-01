@@ -94,13 +94,12 @@ using Test, QuadGK
 
         @testset "UV fraction" begin
             bh = BlackHole(1e8 * M_SUN, 0.5, 0)
-            @test uv_fraction(bh, 1.0) ≈ 0
-            uvf1 = uv_fraction(bh, 6.01)
-            uvf2 = uv_fraction(bh, 30)
-            uvf3 = uv_fraction(bh, 200)
+            @test disk_uv_fraction(bh, 1.0) ≈ 0
+            uvf1 = disk_uv_fraction(bh, 6.01)
+            uvf2 = disk_uv_fraction(bh, 30)
+            uvf3 = disk_uv_fraction(bh, 200)
             @test uvf1 < uvf2
             @test uvf3 < uvf2
-            @test uv_fractions(bh, [6, 10]) == [uv_fraction(bh, 6), uv_fraction(bh, 10)]
         end
     end
 end
