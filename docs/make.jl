@@ -1,13 +1,13 @@
-using qsosed
+using Qsosed
 using Documenter
 
-DocMeta.setdocmeta!(qsosed, :DocTestSetup, :(using qsosed); recursive=true)
+DocMeta.setdocmeta!(Qsosed, :DocTestSetup, :(using Qsosed); recursive=true)
 
 makedocs(;
-    modules=[qsosed],
+    modules=[Qsosed],
     authors="Arnau Quera-Bofarull",
     repo="https://github.com/arnauqb/qsosed.jl/blob/{commit}{path}#{line}",
-    sitename="qsosed.jl",
+    sitename="Qsosed.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
         assets=String[],
