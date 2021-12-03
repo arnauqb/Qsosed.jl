@@ -5,7 +5,9 @@ export Corona,
     compute_corona_photon_index,
     compute_corona_radius,
     compute_corona_luminosity,
-    compute_reprocessed_flux
+    compute_reprocessed_flux,
+    compute_corona_photon_flux,
+    compute_corona_spectral_luminosity
 
 using QuadGK, Roots
 
@@ -16,9 +18,23 @@ struct Corona{T<:Float64,U<:Bool}
     radius::T
     reprocessing::U
 end
-function Corona(bh; hard_xray_fraction, electron_energy, reprocessing)
+function Corona(bh::BlackHole; hard_xray_fraction, electron_energy, reprocessing)
     radius = compute_corona_radius(bh, hard_xray_fraction)
-    return Corona(bh, Float64(hard_xray_fraction), Float64(electron_energy), Float64(radius), reprocessing)
+    return Corona(
+        bh,
+        Float64(hard_xray_fraction),
+        Float64(electron_energy),
+        Float64(radius),
+        reprocessing,
+    )
+end
+function Corona(bh::BlackHole, parameters::Parameters)
+    return Corona(
+        bh,
+        hard_xray_fraction = parameters.hard_xray_fraction,
+        electron_energy = parameters.corona_electron_energy,
+        reprocessing = parameters.reprocessing,
+    )
 end
 
 """
@@ -60,7 +76,8 @@ Intrinsic luminosity from the Corona. This is assumed to be a constant fraction 
 function compute_corona_dissipated_luminosity(bh, hard_xray_fraction)
     return hard_xray_fraction * compute_eddington_luminosity(bh)
 end
-compute_corona_dissipated_luminosity(corona) = compute_corona_dissipated_luminosity(corona.bh, corona.hard_xray_fraction)
+compute_corona_dissipated_luminosity(corona) =
+    compute_corona_dissipated_luminosity(corona.bh, corona.hard_xray_fraction)
 
 """
     compute_corona_photon_index
@@ -84,7 +101,9 @@ Finds the radius of the corona
 function compute_corona_radius(bh, hard_xray_fraction)
     function corona_radius_kernel(bh, radius)
         truncated_disk_lumin = compute_disk_luminosity(bh, bh.isco, radius)
-        diff = truncated_disk_lumin - compute_corona_dissipated_luminosity(bh, hard_xray_fraction)
+        diff =
+            truncated_disk_lumin -
+            compute_corona_dissipated_luminosity(bh, hard_xray_fraction)
         return diff
     end
     r_cor = find_zero(
@@ -103,22 +122,40 @@ compute_corona_radius(corona) = corona.radius
 Total luminosity of the corona.
 """
 function compute_corona_luminosity(corona)
-    return compute_corona_seed_luminosity(corona) + compute_corona_dissipated_luminosity(corona)
+    return compute_corona_seed_luminosity(corona) +
+           compute_corona_dissipated_luminosity(corona)
 end
 
 """
     compute_reprocessed_flux(corona, radius)
 Computes the reprocessed flux from the corona at radius `radius`.
 """
-function compute_reprocessed_flux(corona, radius; albedo=0.3)
+function compute_reprocessed_flux(corona, radius; albedo = 0.3)
     Lhot = compute_corona_luminosity(corona)
     height = corona.radius * corona.bh.Rg
     radius = radius * corona.bh.Rg
     isco = corona.bh.isco * corona.bh.Rg
-    Mdot = compute_mass_accretion_rate(corona.bh) 
+    Mdot = compute_mass_accretion_rate(corona.bh)
     aux1 = (3 * G * corona.bh.M * Mdot) / (8 * π * radius^3)
     aux2 = 2 * Lhot / (Mdot * C^2)
     aux3 = height / isco * (1 - albedo)
     aux4 = (1 + (height / radius)^2)^(-1.5)
     return aux1 * aux2 * aux3 * aux4
+end
+
+function compute_corona_spectral_luminosity(corona::Corona, warm, energy_range)
+    gamma = compute_corona_photon_index(corona)
+    kt_e = corona.electron_energy
+    kt_c = compute_disk_temperature(corona.bh, corona.radius) * K_B
+    kt_c_kev = kt_c * ERG_TO_KEV
+    ywarm = compute_ywarm(warm)
+    params = [gamma, kt_e, kt_c_kev * exp(ywarm), 0, 0]
+    photons_per_bin = compute_compton_photons_per_bin(energy_range, params)
+    mid_energies = (energy_range[1:end-1] + energy_range[2:end]) / 2
+    lumin_per_bin = vcat([0], photons_per_bin[2:end] .* mid_energies)
+    total_lumin = sum(lumin_per_bin) 
+    target_luminosity = compute_corona_luminosity(corona) 
+    ret = lumin_per_bin * (target_luminosity / total_lumin)
+    ret = ret[2:end] ./ diff(energy_range)
+    return vcat([0], ret)
 end

@@ -5,18 +5,16 @@ export BlackBody,
     spectral_radiance_frequency,
     spectral_band_radiance,
     spectral_band_radiance_frequency,
-    spectral_band_fraction,
-    spectral_band_fraction_frequency,
     radiance,
     disk_nt_rel_factors,
     gravity_radius,
     disk_flux,
-    disk_flux_norel,
     compute_disk_temperature,
-    compute_disk_temperature_norel,
-    uv_fraction,
-    uv_fractions,
-    compute_disk_luminosity
+    compute_disk_luminosity,
+    compute_disk_spectral_luminosity,
+    compute_disk_spectral_flux,
+    compute_disk_spectral_flux_at_radius,
+    compute_disk_flux_at_radius
 
 struct BlackBody
     T::Float64
@@ -49,7 +47,9 @@ function spectral_radiance(bb::BlackBody, energy)
 end
 
 """
-Computes the radiance on a frequency band from low to high.
+    spectral_band_radiance_frequency(bb::BlackBody, low, high)
+Computes the radiance on a frequency band from low to high. low and high
+have to be in Hz, return units are erg / sr / m^2
 """
 function spectral_band_radiance_frequency(bb::BlackBody, low, high)
     low = max(low, nu_peak(bb) / 1e4)
@@ -71,25 +71,6 @@ function spectral_band_radiance(bb::BlackBody, low, high)
 end
 
 radiance(bb::BlackBody) = SIGMA_SB * bb.T^4 / π
-
-"""
-Computes the amount of black body radiance that is emitted in
-a particular frequency band.
-"""
-function spectral_band_fraction_frequency(bb::BlackBody, low, high)
-    total_radiance = radiance(bb)
-    band_radiance = spectral_band_radiance_frequency(bb, low, high)
-    return band_radiance / total_radiance
-end
-"""
-Computes the amount of black body radiance that is emitted in
-a particular energy band.
-"""
-function spectral_band_fraction(bb::BlackBody, low, high)
-    total_radiance = radiance(bb)
-    band_radiance = spectral_band_radiance(bb, low, high)
-    return band_radiance / total_radiance
-end
 
 """
 Novikov-Thorne relativistic factors for the AD spectrum.
@@ -145,11 +126,6 @@ function disk_flux(bh::BlackHole, r)
     return 3 * G * bh.M * Mdot / (8 * π * (r * bh.Rg)^3) * NT_factors
 end
 
-function disk_flux_norel(bh::BlackHole, r)
-    Mdot = compute_mass_accretion_rate(bh)
-    return 3 * G * bh.M * Mdot / (8 * π * (r * bh.Rg)^3)
-end
-
 """
 Computes the temperature of the disk at a radius r (in units of Rg).
 """
@@ -158,55 +134,56 @@ function compute_disk_temperature(bh::BlackHole, r)
     return (flux / SIGMA_SB)^(1 / 4)
 end
 
-function compute_disk_temperature_norel(bh::BlackHole, r)
-    flux = disk_flux_norel(bh, r)
-    return (flux / SIGMA_SB)^(1 / 4)
-end
-
-function uv_fraction(bh::BlackHole, r)
-    if r <= bh.isco
-        return 0.0
-    end
-    temperature = compute_disk_temperature(bh, r)
-    bb = BlackBody(temperature)
-    return spectral_band_fraction(bb, UV_LOW_KEV, UV_HIGH_KEV)
-end
-
-function uv_fractions(bh::BlackHole, radius_range)
-    return uv_fraction.(Ref(bh), radius_range)
-end
-
-"""
-Disk spectrum
-"""
-function disk_spectral_band_radiance(bh::BlackHole, low, high)
-    f(r) = spectral_band_radiance(BlackBody(compute_disk_temperature(bh, r)), low, high) * r
-    integral, err = quadgk(f, bh.isco, 1600, rtol = 1e-8, atol = 0)
-    return integral * 4π^2 * bh.Rg^2
-end
-
-function xray_fraction(bh::BlackHole; low = UV_HIGH_KEV, high = 1e7)
-    total_lumin = compute_bolometric_luminosity(bh)
-    xray_lumin = disk_spectral_band_radiance(bh, low, high)
-    xray_lumin / total_lumin
-end
-
-
-"""
-Disk height
-"""
-function disk_height(bh::BlackHole, r; mu_e = 1.17)
-    return SIGMA_E * mu_e * SIGMA_SB * compute_disk_temperature(bh, r)^4 * (r * bh.Rg)^3 /
-           (G * bh.M * C) / bh.Rg
-end
-
 """
     compute_disk_luminosity(bh, r_min, r_max)
 computes the luminosity of the disk between r_min and r_max
 """
 function compute_disk_luminosity(bh, r_min, r_max)
     constant = SIGMA_SB * 4 * π * bh.Rg^2
-    integ, _ = quadgk(r -> r * compute_disk_temperature(bh, r)^4, r_min, r_max, atol=0, rtol=1e-2)
+    integ, _ = quadgk(
+        r -> r * compute_disk_temperature(bh, r)^4,
+        r_min,
+        r_max,
+        atol = 0,
+        rtol = 1e-2,
+    )
     return integ * constant
 end
 
+"""
+    compute_disk_spectral_flux_at_radius(bh, radius, energy_range)
+Returns an array with the photon flux at each bin. (# photons / cm^2)
+"""
+function compute_disk_spectral_flux_at_radius(bh, radius, energy)
+    ret = Float64[]
+    bb = BlackBody(compute_disk_temperature(bh, radius))
+    freq = kev_to_hz(energy)
+    radiance = spectral_radiance_frequency(bb, freq)
+    return radiance * π / HZ_TO_KEV
+end
+
+"""
+    compute_disk_flux_at_radius(bh, radius, energy_range)
+Returns an array with the photon flux at each bin. (# photons / cm^2)
+"""
+function compute_disk_flux_at_radius(bh, radius, low = 1e-5, high = 1e2)
+    ret = Float64[]
+    bb = BlackBody(compute_disk_temperature(bh, radius))
+    radiance = spectral_band_radiance(bb, low, high)
+    return radiance * π
+end
+
+function compute_disk_spectral_luminosity(bh, energy_range; r_min=6, r_max=1600)
+    ret = Float64[]
+    for energy in energy_range
+        integ, _ = quadgk(
+            r -> r * compute_disk_spectral_flux_at_radius(bh, r, energy),
+            r_min,
+            r_max,
+            rtol = 1e-8,
+            atol = 0,
+        )
+        push!(ret, integ)
+    end
+    return ret * 2 * 2π * bh.Rg^2
+end

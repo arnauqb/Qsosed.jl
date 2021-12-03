@@ -1,5 +1,5 @@
 using Qsosed
-using Test
+using Test, QuadGK
 
 @testset "Disk radiation" begin
     @testset "Blackbody radiation" begin
@@ -23,11 +23,6 @@ using Test
             bb = BlackBody(1e4)
             @test spectral_band_radiance(bb, 1e-5, 1e2) ≈ SIGMA_SB * bb.T^4 / π rtol = 1e-6
         end
-        @testset "Energy band fraction" begin
-            bb = BlackBody(1e4)
-            @test spectral_band_fraction_frequency(bb, 1e12, 1e18) ≈ 1 rtol = 1e-8
-            @test spectral_band_fraction(bb, 1e-5, 1e2) ≈ 1 rtol = 1e-6
-        end
     end
     @testset "Disk radiation" begin
         @testset "Test relativistic AD correction" begin
@@ -49,15 +44,53 @@ using Test
             @test disk_flux(bh, 10) / 1.17 ≈ 889138044477300.2 rtol = 1e-6
             @test disk_flux(bh, 100) / 1.17 ≈ 1662600341587.0435 rtol = 1e-6
         end
-        @testset "UV fraction" begin
+
+        @testset "Integrate spectral radial radiance" begin
             bh = BlackHole(1e8 * M_SUN, 0.5, 0)
-            @test uv_fraction(bh, 1.0) ≈ 0
-            uvf1 = uv_fraction(bh, 6.01)
-            uvf2 = uv_fraction(bh, 30)
-            uvf3 = uv_fraction(bh, 200)
-            @test uvf1 < uvf2
-            @test uvf3 < uvf2
-            @test uv_fractions(bh, [6, 10]) == [uv_fraction(bh, 6), uv_fraction(bh, 10)]
+            energy_range = 10 .^ range(-3, -1, length = 500)
+            radius = 50
+            flux = compute_disk_flux_at_radius(bh, radius)
+            temp = compute_disk_temperature(bh, radius)
+            exp = SIGMA_SB * temp^4
+            @test flux ≈ exp rtol = 1e-3
+            integ_flux, _ = quadgk(
+                e -> compute_disk_spectral_flux_at_radius(bh, radius, e),
+                1e-5,
+                1e2,
+                atol = 0,
+                rtol = 1e-4,
+            )
+            @test integ_flux ≈ exp rtol = 1e-2
+
+            @testset "Recover luminosity" begin
+                function kernel(bh, radius)
+                    integ_flux, _ = quadgk(
+                        e -> compute_disk_spectral_flux_at_radius(bh, radius, e),
+                        1e-5,
+                        1e2,
+                        atol = 0,
+                        rtol = 1e-4,
+                    )
+                    return integ_flux
+                end
+                lumin_integ, _ = quadgk(
+                    r -> 2 * 2 * π * r * kernel(bh, r),
+                    6.0,
+                    1500.0,
+                    atol = 0,
+                    rtol = 1e-4,
+                )
+                lumin_integ *= bh.Rg^2
+                lbol = compute_bolometric_luminosity(bh)
+                @test lumin_integ ≈ lbol rtol = 1e-1
+            end
+
+            @testset "Disk sed" begin
+                disk_sed = compute_disk_spectral_luminosity(bh, energy_range)
+                integ_lumin = sum(disk_sed[2:end] .* diff(energy_range))
+                @test integ_lumin ≈ compute_bolometric_luminosity(bh) rtol = 1e-1
+            end
+
         end
     end
 end
