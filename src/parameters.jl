@@ -58,8 +58,10 @@ struct Parameters{T<:AbstractFloat,S<:Flag,U<:Bool,V<:Int,W<:String}
     end
 end
 
-
+function Parameters(config::Dict)
+    return Parameters(;config...)
+end
 function Parameters(file_path::String)
     config = YAML.load_file(file_path, dicttype=Dict{Symbol, Any})
-    return Parameters(;config...)
+    return Parameters(config)
 end
