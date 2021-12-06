@@ -1,6 +1,5 @@
 using QuadGK
 export BlackBody,
-    disk_height,
     spectral_radiance,
     spectral_radiance_frequency,
     spectral_band_radiance,

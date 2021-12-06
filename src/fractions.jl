@@ -111,7 +111,7 @@ function total_xray_fraction(
         total_spectral_lumin[xray_lower_b:xray_upper_b] .*
         delta_energy_range[xray_lower_b:xray_upper_b],
     )
-    total_lumin = sum(total_spectral_lumin[2:end] .* delta_energy_range)
+    total_lumin = compute_bolometric_luminosity(corona.bh)
     return xray_lumin / total_lumin
 end
 total_xray_fraction(
@@ -138,12 +138,20 @@ Fraction of power emitted in the UV band per radius.
 function radial_uv_fraction(
     corona,
     warm;
+    r_min = "isco",
+    r_max = "gravity_radius",
     uv_low_kev = 0.00387,
     uv_high_kev = 0.06,
     n_r = 5000,
 )
+    if r_min == "isco"
+        r_min = corona.bh.isco
+    end
+    if r_max == "gravity_radius"
+        r_max = gravity_radius(corona.bh)
+    end
     r_range =
-        10 .^ range(log10(corona.bh.isco), log10(gravity_radius(corona.bh)), length = n_r)
+        10 .^ range(log10(r_min), log10(r_max), length = n_r)
     warm_uv_fraction = compute_warm_uv_fraction(
         corona,
         warm,
@@ -171,11 +179,13 @@ function radial_uv_fraction(
     end
     return r_range, ret
 end
-radial_uv_fraction(model; n_r = 5000) = radial_uv_fraction(
+radial_uv_fraction(model; r_min = "isco", r_max="gravity_radius", n_r = 5000) = radial_uv_fraction(
     model.corona,
     model.warm,
     uv_low_kev = model.parameters.uv_min_energy,
     uv_high_kev = model.parameters.uv_max_energy,
     n_r = n_r,
+    r_min=r_min,
+    r_max=r_max
 )
 
