@@ -28,11 +28,11 @@ function spectral_band_fraction(bb::BlackBody, low, high)
 end
 
 """
-    disk_uv_fraction(bh::BlackHole, r; uv_low_kev = 0.00387, uv_high_kev = 0.06)
+    disk_uv_fraction(bh, r; uv_low_kev = 0.00387, uv_high_kev = 0.06)
 Computes the fraction of luminosity in the UV band, for a ring at disk r.
 The UV band is defined as uv_low_kev -- uv_high_kev.
 """
-function disk_uv_fraction(bh::BlackHole, r; uv_low_kev = 0.00387, uv_high_kev = 0.06)
+function disk_uv_fraction(bh, r; uv_low_kev = 0.00387, uv_high_kev = 0.06)
     if r <= bh.isco
         return 0.0
     end

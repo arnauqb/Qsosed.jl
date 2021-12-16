@@ -80,6 +80,6 @@ function compute_mass_accretion_rate(M, mdot, spin; mu_electron = 1.17)
            (efficiency * C^2)
 end
 
-function compute_mass_accretion_rate(bh::BlackHole; mu_electron = 1.17)
+function compute_mass_accretion_rate(bh; mu_electron = 1.17)
     return compute_mass_accretion_rate(bh.M, bh.mdot, bh.spin, mu_electron = mu_electron)
 end
