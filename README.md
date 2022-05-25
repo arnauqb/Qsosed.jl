@@ -29,3 +29,11 @@ not the disc itself. In the model, the albedo is fixed at a = 0.3, and
 the seed photon temperature for the hot Comptonisation component is
 calculated internally. In contrast to optxagnf, this model does not
 take the color temperature correction into account.
+
+# Setup
+
+The package can be directly installed from Julia package manager
+
+```julia
+]add Qsosed
+```
